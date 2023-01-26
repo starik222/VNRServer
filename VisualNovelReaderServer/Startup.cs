@@ -47,7 +47,8 @@ namespace VisualNovelReaderServer
 
             services.AddDbContext<MainDbContext>(options =>
                     //options.UseSqlServer(Configuration.GetConnectionString("MainDatabase")));
-                    options.UseSqlite(Configuration.GetConnectionString("MainDatabase")));
+                    options.UseSqlite(Configuration.GetConnectionString("MainDatabase")));//.ConfigureWarnings(warnings =>
+                                  //warnings.Throw(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.MultipleCollectionIncludeWarning)));
 
             services.AddSwaggerGen(c =>
             {

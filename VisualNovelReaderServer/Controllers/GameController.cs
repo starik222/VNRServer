@@ -377,5 +377,177 @@ namespace VisualNovelReaderServer.Controllers
 
             return new GameUpdateResult { Id = game.Id };
         }
+
+
+        [HttpPost("submit_reference")]
+        public async Task<ActionResult<ReferenceSubmitResult>> SubmitReference(ReferenceSubmitParams @params)
+        {
+            User user = await _dbContext.User
+                .Where(it => it.Username == @params.Username && it.Password == @params.Password)
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+                return Unauthorized();
+
+            user.AccessTime = DateTime.UtcNow;
+
+            Reference refer = null;
+            Reference nRefer = null;
+            Game game = null;
+            GameItem gi = null;
+
+            // Support query by MD5
+            if (@params.GameMd5 != null && @params.GameMd5.Length == 32)
+            {
+                game = await _dbContext.Game
+                    .Where(it => it.Md5 == @params.GameMd5)
+                    .FirstOrDefaultAsync();
+            }
+            else
+            {
+                if (@params.GameId == null)
+                {
+                    _logger.LogError("Update: Missing GameId and Md5.");
+                    return NotFound();
+                }
+
+                game = await _dbContext.Game
+                    .Where(it => it.Id == @params.GameId)
+                    .FirstOrDefaultAsync();
+            }
+
+            if (game == null)
+            {
+                _logger.LogError("submitReference: Missing Md5 for game.");
+                return NotFound();
+            }
+
+            refer = await _dbContext.Reference
+                .Where(it =>it.GameId == @params.GameId && it.Type == @params.Type && it.Key == @params.Key)
+                .FirstOrDefaultAsync();
+
+            if (refer != null)
+                return Conflict();
+
+            refer = await _dbContext.Reference
+                .Where(it => it.Type == @params.Type && it.Key == @params.Key)
+                .FirstOrDefaultAsync();
+
+
+            if (refer != null)
+            {
+                gi = await _dbContext.GameItem
+                .Where(it => it.Id == refer.GameItemId)
+                .FirstOrDefaultAsync();
+                if (gi == null)
+                    return NotFound();
+
+                game.GameItem = gi;
+
+                nRefer = new Reference
+                {
+                    Type = @params.Type,
+                    Game = game,
+                    GameItem = gi,
+                    Title = @params.Title,
+                    Brand = @params.Brand,
+                    Date = DateTimeOffset.FromUnixTimeSeconds(@params.Date).DateTime,
+                    Key = @params.Key,
+                    Url = @params.Url,
+                    CreatorId = user.Id,
+                    CreationTime = DateTime.UtcNow,
+                    ModifiedTime = DateTime.UtcNow
+
+                };
+                _dbContext.Reference.Add(nRefer);
+            }
+            else
+            {
+                if (game.GameItem != null)
+                {
+                    gi = await _dbContext.GameItem
+                        .Where(it => it.Id == game.GameItemId)
+                        .FirstOrDefaultAsync();
+                    if (gi == null)
+                        return NotFound();
+                }
+                else
+                {
+                    gi = new GameItem
+                    {
+                        Title = @params.Title,
+                        Brand = @params.Brand,
+                        Date = DateTimeOffset.FromUnixTimeSeconds(@params.Date).DateTime.ToString("%Y%m%d"),
+                        ImageUrl = @params.ImageUrl,
+                        CreatorId = user.Id,
+                        CreationTime = DateTime.UtcNow,
+                        ModifiedTime = DateTime.UtcNow
+                    };
+                    _dbContext.GameItem.Add(gi);
+                    game.GameItem = gi;
+                }
+
+                nRefer = new Reference
+                {
+                    Type = @params.Type,
+                    Game = game,
+                    GameItem = gi,
+                    Title = @params.Title,
+                    Brand = @params.Brand,
+                    Date = DateTimeOffset.FromUnixTimeSeconds(@params.Date).DateTime,
+                    Key = @params.Key,
+                    Url = @params.Url,
+                    CreatorId = user.Id,
+                    CreationTime = DateTime.UtcNow,
+                    ModifiedTime = DateTime.UtcNow
+
+                };
+                _dbContext.Reference.Add(nRefer);
+
+            }
+
+            List<Comment> comment = await _dbContext.Comment
+                .Where(it => it.GameId == @params.GameId && it.GameItem == null).ToListAsync();
+
+            if (comment != null && comment.Count > 0)
+            {
+                foreach (var item in comment)
+                {
+                    item.GameItem = gi;
+                }
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            return new ReferenceSubmitResult { Id = nRefer.Id, GameId = nRefer.GameId, ItemId = nRefer.GameItemId };
+        }
+
+        [HttpPost("update_reference")]
+        public async Task<ActionResult<ReferenceSubmitResult>> UpdateReference(ReferenceUpdateParams @params)
+        {
+            User user = await _dbContext.User
+                .Where(it => it.Username == @params.Username && it.Password == @params.Password)
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+                return Unauthorized();
+
+            user.AccessTime = DateTime.UtcNow;
+
+            Reference refer = null;
+
+            if (!@params.Del)
+                return NotFound();
+            refer = await _dbContext.Reference
+                .Where(it => it.Id == @params.Id)
+                .FirstOrDefaultAsync();
+
+            if (refer == null)
+                return NotFound();
+            _dbContext.Reference.Remove(refer);
+            await _dbContext.SaveChangesAsync();
+
+            return new ReferenceSubmitResult { Id = refer.Id, GameId = refer.GameId, ItemId = refer.GameItemId };
+        }
     }
 }

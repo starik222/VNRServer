@@ -97,10 +97,11 @@ namespace VisualNovelReaderServer.Controllers
         [HttpPost("query")]
         public async Task<ActionResult<IEnumerable<CommentResultData>>> Query(CommentQueryParams @params)
         {
+            Game game = null;
             // Support query by MD5
             if (@params.GameMd5 != null && @params.GameMd5.Length == 32)
             {
-                Game game = await _dbContext.Game
+                game = await _dbContext.Game
                     .Where(it => it.Md5 == @params.GameMd5)
                     .FirstOrDefaultAsync();
 
@@ -113,8 +114,22 @@ namespace VisualNovelReaderServer.Controllers
             if (@params.GameId == null)
                 return BadRequest();
 
+            if (game == null)
+            {
+                game = await _dbContext.Game
+                    .Where(it => it.Id == @params.GameId)
+                    .FirstOrDefaultAsync();
+                if (game == null)
+                    return NotFound();
+            }
+
+            bool isGroup = false;
+
+            if (game.GameItemId != null)
+                isGroup = true;
+
             return await _dbContext.Comment
-                .Where(it => it.GameId == @params.GameId && it.Deleted == false)
+                .Where(it => ((isGroup && it.GameItemId == game.GameItemId) || it.GameId == @params.GameId) && it.Deleted == false)
                 .Select(it => new CommentResultData
                 {
                     Id = it.Id,

@@ -506,7 +506,7 @@ class _NetworkManager(object):
 
   #   dwarn("failed URL follows")
   #   try: dwarn(r.url, params)
-  #   except: 
+  #   except:
   #     dwarn("pass")
   #     pass
 
@@ -1167,181 +1167,272 @@ class _NetworkManager(object):
 
     return None
 
+  # def submitReference(self, ref, userName, password, md5=None, async=False):
+  #   """Update reference if succeeded
+  #   @return  (gameId, itemId) or None
+  #   """
+  #   rd = ref.d
+  #   #assert userName and password, "missing user name or password"
+  #   #assert ref and (ref.gameId or md5), "missing game id and digest"
+  #
+  #   params = {
+  #     'ver': self.version,
+  #     'login': userName,
+  #     'password': password,
+  #     'type': rd.type,
+  #     'key': rd.key,
+  #     'url': rd.url,
+  #     'title': rd.title
+  #         if len(rd.title) <= defs.MAX_TEXT_LENGTH
+  #         else rd.title[:defs.MAX_TEXT_LENGTH],
+  #   }
+  #   if rd.brand:
+  #     params['brand'] = rd.brand
+  #   if rd.date:
+  #     params['date'] = rd.date
+  #   if ref.image:
+  #     params['image'] = ref.image # _References don't have image
+  #   #if rd.itemId:
+  #   #  params['itemId'] = rd.itemId
+  #   if rd.gameId:
+  #     params['gameid'] = rd.gameId
+  #   else:
+  #     params['md5'] = md5 or rd.gameMd5
+  #
+  #   if rd.comment:
+  #     params['comment'] = (rd.comment
+  #         if len(rd.comment) <= defs.MAX_TEXT_LENGTH
+  #         else rd.comment[:defs.MAX_TEXT_LENGTH])
+  #
+  #   if rd.updateComment:
+  #     params['updatecomment'] = (rd.updateComment
+  #         if len(rd.updateComment) <= defs.MAX_TEXT_LENGTH
+  #         else rd.updateComment[:defs.MAX_TEXT_LENGTH])
+  #
+  #   if rd.deleted:
+  #     # Should never happen. I mean, deleted subs should have been skipped in dataman
+  #     params['del'] = True
+  #   if rd.disabled:
+  #     params['disable'] = True
+  #
+  #   try:
+  #     if not async:
+  #       r = session.post(XML_API + 'go=add_reference', data=params, headers=XML_POST_HEADERS)
+  #     else:
+  #       r = skthreads.runsync(partial(
+  #           session.post,
+  #           XML_API + 'go=add_reference', data=params, headers=XML_POST_HEADERS))
+  #
+  #     if r.ok and _response_is_xml(r):
+  #       root = etree.fromstring(r.content)
+  #       el = root.find('./references/reference')
+  #
+  #       # Be careful about async here
+  #       # Might raise after ref QObject is deleted
+  #       try:
+  #         ref.id = int(el.get('id'))
+  #         ref.itemId = int(el.find('itemId').text)
+  #       except Exception, e:
+  #         dwarn(e)
+  #         rd.id = int(el.get('id'))
+  #         rd.itemId = int(el.find('itemId').text)
+  #
+  #       gameId = itemId = 0
+  #       el = root.find('./games/game')
+  #       if el:
+  #         gameId = int(el.get('id'))
+  #         itemId = int(el.find('itemId').text)
+  #
+  #       dprint("ref id = %i" % rd.id)
+  #       return gameId, itemId
+  #
+  #   #except socket.error, e:
+  #   #  dwarn("socket error", e.args)
+  #   except requests.ConnectionError, e:
+  #     dwarn("connection error", e.args)
+  #   except requests.HTTPError, e:
+  #     dwarn("http error", e.args)
+  #   except etree.ParseError, e:
+  #     dwarn("xml parse error", e.args)
+  #   except KeyError, e:
+  #     dwarn("invalid response header", e.args)
+  #   except (TypeError, ValueError, AttributeError), e:
+  #     dwarn("xml malformat", e.args)
+  #   except Exception, e:
+  #     derror(e)
+  #
+  #   dwarn("failed URL follows")
+  #   try: dwarn(r.url, params)
+  #   except: pass
+
+
   def submitReference(self, ref, userName, password, md5=None, async=False):
-    """Update reference if succeeded
-    @return  (gameId, itemId) or None
+    """
+    API Version: 3
+    Return: bool
     """
     rd = ref.d
-    #assert userName and password, "missing user name or password"
-    #assert ref and (ref.gameId or md5), "missing game id and digest"
-
     params = {
-      'ver': self.version,
-      'login': userName,
+      'username': userName,
       'password': password,
       'type': rd.type,
+      'gameId': rd.gameId,
+      'gameMd5': md5 or rd.gameMd5,
+      'title': rd.title,
+      'brand': rd.brand,
+      'date': rd.date,
       'key': rd.key,
       'url': rd.url,
-      'title': rd.title
-          if len(rd.title) <= defs.MAX_TEXT_LENGTH
-          else rd.title[:defs.MAX_TEXT_LENGTH],
+      'imageUrl': ref.image,
+      'del': False
     }
-    if rd.brand:
-      params['brand'] = rd.brand
-    if rd.date:
-      params['date'] = rd.date
-    if ref.image:
-      params['image'] = ref.image # _References don't have image
-    #if rd.itemId:
-    #  params['itemId'] = rd.itemId
-    if rd.gameId:
-      params['gameid'] = rd.gameId
-    else:
-      params['md5'] = md5 or rd.gameMd5
-
-    if rd.comment:
-      params['comment'] = (rd.comment
-          if len(rd.comment) <= defs.MAX_TEXT_LENGTH
-          else rd.comment[:defs.MAX_TEXT_LENGTH])
-
-    if rd.updateComment:
-      params['updatecomment'] = (rd.updateComment
-          if len(rd.updateComment) <= defs.MAX_TEXT_LENGTH
-          else rd.updateComment[:defs.MAX_TEXT_LENGTH])
-
     if rd.deleted:
-      # Should never happen. I mean, deleted subs should have been skipped in dataman
       params['del'] = True
-    if rd.disabled:
-      params['disable'] = True
 
     try:
-      if not async:
-        r = session.post(XML_API + 'go=add_reference', data=params, headers=XML_POST_HEADERS)
-      else:
-        r = skthreads.runsync(partial(
-            session.post,
-            XML_API + 'go=add_reference', data=params, headers=XML_POST_HEADERS))
+      r = session.post(V3_API + 'game/submit_reference', json=params)
+      if not r.ok:
+        r.raise_for_status()
+      data = r.json()
 
-      if r.ok and _response_is_xml(r):
-        root = etree.fromstring(r.content)
-        el = root.find('./references/reference')
+      refId = int(data.get('id', 0))
+      if refId:
+        gameId = int(data.get('gameId', 0))
+        itemId = int(data.get('itemId', 0))
 
-        # Be careful about async here
-        # Might raise after ref QObject is deleted
-        try:
-          ref.id = int(el.get('id'))
-          ref.itemId = int(el.find('itemId').text)
-        except Exception, e:
-          dwarn(e)
-          rd.id = int(el.get('id'))
-          rd.itemId = int(el.find('itemId').text)
-
-        gameId = itemId = 0
-        el = root.find('./games/game')
-        if el:
-          gameId = int(el.get('id'))
-          itemId = int(el.find('itemId').text)
-
-        dprint("ref id = %i" % rd.id)
+        dprint("ref id = %i" % refId)
         return gameId, itemId
 
-    #except socket.error, e:
-    #  dwarn("socket error", e.args)
-    except requests.ConnectionError, e:
-      dwarn("connection error", e.args)
-    except requests.HTTPError, e:
-      dwarn("http error", e.args)
-    except etree.ParseError, e:
-      dwarn("xml parse error", e.args)
-    except KeyError, e:
-      dwarn("invalid response header", e.args)
-    except (TypeError, ValueError, AttributeError), e:
-      dwarn("xml malformat", e.args)
-    except Exception, e:
-      derror(e)
+    except requests.ConnectionError as e:
+      derror(e.message)
+    except requests.HTTPError as e:
+      derror(e.message)
+    except Exception as e:
+      derror(e.message)
 
     dwarn("failed URL follows")
     try: dwarn(r.url, params)
     except: pass
 
+
+  # def updateReference(self, ref, userName, password, async=False):
+  #   """
+  #   @return  (int gameId, int itemId) or None
+  #   """
+  #   #assert userName and password, "missing user name or password"
+  #   #assert ref and ref.id, "missing reference id"
+  #   rd = ref.d
+  #   params = {}
+  #   pty = ref.dirtyProperties()
+  #   if not pty:
+  #     dwarn("warning: reference to update is not dirty")
+  #     return rd.itemId
+  #
+  #   if 'deleted' in pty:        params['del'] = rd.deleted
+  #   #if not rd.deleted:
+  #   if 'disabled' in pty:     params['disable'] = rd.disabled
+  #
+  #   for k in 'comment', 'updateComment':
+  #     if k in pty:
+  #       v = getattr(rd, k)
+  #       if v:
+  #         params[k.lower()] = (v
+  #             if len(v) <= defs.MAX_TEXT_LENGTH
+  #             else v[:defs.MAX_TEXT_LENGTH])
+  #       else:
+  #         params['del' + k.lower()] = True
+  #
+  #   if not params:
+  #     dwarn("warning: nothing change")
+  #     return rd.itemId
+  #
+  #   params['login'] = userName
+  #   params['password'] = password
+  #   params['id'] = rd.id
+  #   params['ver'] = self.version
+  #
+  #   try:
+  #     if not async:
+  #       r = session.post(XML_API + 'go=update_reference', data=params, headers=XML_POST_HEADERS)
+  #     else:
+  #       r = skthreads.runsync(partial(
+  #           session.post,
+  #           XML_API + 'go=update_reference', data=params, headers=XML_POST_HEADERS))
+  #
+  #     if r.ok and _response_is_xml(r):
+  #       root = etree.fromstring(r.content)
+  #       el = root.find('./references/reference')
+  #       refId = int(el.get('id'))
+  #       if refId:
+  #         gameId = itemId = 0
+  #         el = root.find('./games/game')
+  #         if el:
+  #           gameId = int(el.get('id'))
+  #           itemId = int(el.find('itemId').text)
+  #         dprint("ref id = %i" % refId)
+  #         return gameId, itemId
+  #
+  #   #except socket.error, e:
+  #   #  dwarn("socket error", e.args)
+  #   except requests.ConnectionError, e:
+  #     dwarn("connection error", e.args)
+  #   except requests.HTTPError, e:
+  #     dwarn("http error", e.args)
+  #   except etree.ParseError, e:
+  #     dwarn("xml parse error", e.args)
+  #   except KeyError, e:
+  #     dwarn("invalid response header", e.args)
+  #   except (TypeError, ValueError, AttributeError), e:
+  #     dwarn("xml malformat", e.args)
+  #   except Exception, e:
+  #     derror(e)
+  #
+  #   dwarn("failed URL follows")
+  #   try: dwarn(r.url, params)
+  #   except: pass
+
   def updateReference(self, ref, userName, password, async=False):
     """
-    @return  (int gameId, int itemId) or None
+    API Version: 3
+    Return: bool
     """
-    #assert userName and password, "missing user name or password"
-    #assert ref and ref.id, "missing reference id"
     rd = ref.d
-    params = {}
-    pty = ref.dirtyProperties()
-    if not pty:
-      dwarn("warning: reference to update is not dirty")
-      return rd.itemId
-
-    if 'deleted' in pty:        params['del'] = rd.deleted
-    #if not rd.deleted:
-    if 'disabled' in pty:     params['disable'] = rd.disabled
-
-    for k in 'comment', 'updateComment':
-      if k in pty:
-        v = getattr(rd, k)
-        if v:
-          params[k.lower()] = (v
-              if len(v) <= defs.MAX_TEXT_LENGTH
-              else v[:defs.MAX_TEXT_LENGTH])
-        else:
-          params['del' + k.lower()] = True
-
-    if not params:
-      dwarn("warning: nothing change")
-      return rd.itemId
-
-    params['login'] = userName
-    params['password'] = password
-    params['id'] = rd.id
-    params['ver'] = self.version
+    params = {
+      'username': userName,
+      'password': password,
+      'id': rd.id,
+      'del': False
+    }
+    if rd.deleted:
+      params['del'] = True
 
     try:
-      if not async:
-        r = session.post(XML_API + 'go=update_reference', data=params, headers=XML_POST_HEADERS)
-      else:
-        r = skthreads.runsync(partial(
-            session.post,
-            XML_API + 'go=update_reference', data=params, headers=XML_POST_HEADERS))
+      r = session.post(V3_API + 'game/update_reference', json=params)
+      if not r.ok:
+        r.raise_for_status()
+      data = r.json()
 
-      if r.ok and _response_is_xml(r):
-        root = etree.fromstring(r.content)
-        el = root.find('./references/reference')
-        refId = int(el.get('id'))
-        if refId:
-          gameId = itemId = 0
-          el = root.find('./games/game')
-          if el:
-            gameId = int(el.get('id'))
-            itemId = int(el.find('itemId').text)
-          dprint("ref id = %i" % refId)
-          return gameId, itemId
+      refId = int(data.get('id', 0))
+      if refId:
+        gameId = int(data.get('gameId', 0))
+        itemId = int(data.get('itemId', 0))
 
-    #except socket.error, e:
-    #  dwarn("socket error", e.args)
-    except requests.ConnectionError, e:
-      dwarn("connection error", e.args)
-    except requests.HTTPError, e:
-      dwarn("http error", e.args)
-    except etree.ParseError, e:
-      dwarn("xml parse error", e.args)
-    except KeyError, e:
-      dwarn("invalid response header", e.args)
-    except (TypeError, ValueError, AttributeError), e:
-      dwarn("xml malformat", e.args)
-    except Exception, e:
-      derror(e)
+        dprint("ref id = %i" % refId)
+        return gameId, itemId
+
+    except requests.ConnectionError as e:
+      derror(e.message)
+    except requests.HTTPError as e:
+      derror(e.message)
+    except Exception as e:
+      derror(e.message)
 
     dwarn("failed URL follows")
     try: dwarn(r.url, params)
     except: pass
 
   # Subtitles
+
 
   def querySubtitles(self, itemId, gameLang, langs, difftime):
     """

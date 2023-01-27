@@ -136,6 +136,38 @@ namespace VisualNovelReaderServer.Models
         public int Comments { get; set; }
     }
 
+    public class GameItemSubmitData
+    {
+        //public int Id { get; set; }
+        public string Title { get; set; }
+        public string RomajiTitle { get; set; }
+        public string Brand { get; set; }
+        public string Series { get; set; }
+        public string ImageUrl { get; set; }
+        public string BannerUrl { get; set; }
+        public string Wiki { get; set; }
+        public long FileSize { get; set; }
+        public string Tags { get; set; }
+        public string Date { get; set; }
+        public string Artists { get; set; }
+        public string SdArtists { get; set; }
+        public string Writers { get; set; }
+        public string Musicians { get; set; }
+        public bool Otome { get; set; }
+        public bool Ecchi { get; set; }
+        public bool Okazu { get; set; }
+        public int TopicCount { get; set; }
+        public int AnnotCount { get; set; }
+        public int SubtitleCount { get; set; }
+        public int PlayUserCount { get; set; }
+        public int ScapeMedian { get; set; }
+        public int ScapeCount { get; set; }
+        public int OverallScoreCount { get; set; }
+        public int OverallScoreSum { get; set; }
+        public int EcchiScoreCount { get; set; }
+        public int EcchiScoreSum { get; set; }
+    }
+
     public class GameItemResultData
     {
         public int Id { get; set; }
@@ -166,6 +198,49 @@ namespace VisualNovelReaderServer.Models
         public int OverallScoreSum { get; set; }
         public int EcchiScoreCount { get; set; }
         public int EcchiScoreSum { get; set; }
+    }
+
+    public class ReferenceSubmitParams
+    {
+        [Required]
+        [StringLength(64)]
+        public string Username { get; set; }
+        [Required]
+        [StringLength(64)]
+        public string Password { get; set; }
+        public string Type { get; set; }
+        public int? GameId { get; set; }
+        [StringLength(32)]
+        public string GameMd5 { get; set; }
+        public string Title { get; set; }
+        public string Brand { get; set; }
+        public long Date { get; set; }
+        public string Key { get; set; }
+        public string Url { get; set; }
+        public string ImageUrl { get; set; }
+        
+        //[Required]
+        //public GameItemSubmitData Info { get; set; }
+
+    }
+
+    public class ReferenceSubmitResult
+    {
+        public int Id { get; set; }
+        public int GameId { get; set; }
+        public int ItemId { get; set; }
+    }
+
+    public class ReferenceUpdateParams
+    {
+        [Required]
+        [StringLength(64)]
+        public string Username { get; set; }
+        [Required]
+        [StringLength(64)]
+        public string Password { get; set; }
+        public int Id { get; set; }
+        public bool Del { get; set; }
     }
 
     public class ReferenceQueryParams
